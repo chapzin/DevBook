@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/chapzin/DevBook/api/src/banco"
 	"github.com/chapzin/DevBook/api/src/models"
 	"github.com/chapzin/DevBook/api/src/repositorios"
 	"github.com/chapzin/DevBook/api/src/respostas"
+	"github.com/gorilla/mux"
 )
 
 func CriarUsuario(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +72,29 @@ func BuscarUsuarios(w http.ResponseWriter, r *http.Request) {
 }
 
 func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Buscando um usuário"))
+	parametros := mux.Vars(r)
+
+	usuarioID, err := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+	if err != nil {
+		respostas.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+	if err != nil {
+		respostas.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer db.Close()
+
+	repositorio := repositorios.NovoRepositorioDeUsuarios(db)
+	usuario, err := repositorio.BuscarPorID(usuarioID)
+	if err != nil {
+		respostas.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+	respostas.JSON(w, http.StatusOK, usuario)
+
 }
 
 func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {

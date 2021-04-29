@@ -2,6 +2,7 @@ package repositorios
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/chapzin/DevBook/api/src/models"
 )
@@ -32,4 +33,34 @@ func (u *Usuarios) Criar(usuario models.Usuario) (uint64, error) {
 		return 0, err
 	}
 	return uint64(ultimoIdInserido), nil
+}
+
+func (u *Usuarios) Buscar(nomeOuNick string) ([]models.Usuario, error) {
+	nomeOuNick = fmt.Sprintf("%%%s%%", nomeOuNick)
+	linhas, err := u.db.Query("select id, nome, nick, email, criadoEm from usuarios where nome like ? or nick like ?", nomeOuNick, nomeOuNick)
+	if err != nil {
+		return nil, err
+	}
+	defer linhas.Close()
+
+	var usuarios []models.Usuario
+
+	for linhas.Next() {
+		var usuario models.Usuario
+		if err = linhas.Scan(
+			&usuario.ID,
+			&usuario.Nome,
+			&usuario.Nick,
+			&usuario.Email,
+			&usuario.CriadoEm,
+		); err != nil {
+			return nil, err
+		}
+
+		usuarios = append(usuarios, usuario)
+
+	}
+
+	return usuarios, nil
+
 }
